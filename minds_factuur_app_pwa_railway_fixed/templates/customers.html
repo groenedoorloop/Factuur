@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Klanten beheren - Minds Agency{% endblock %}
+{% block body %}
+<header class="topbar">
+  <div>
+    <h1>Klanten beheren</h1>
+    <p>Voeg elk bedrijf of particuliere klant toe waarvoor Minds Agency werkzaamheden doet.</p>
+  </div>
+  <div class="top-actions">
+    <a href="{{ url_for('dashboard') }}">Terug dashboard</a>
+  </div>
+</header>
+
+<main class="container">
+  <section class="panel">
+    <div class="panel-head">
+      <h2>Nieuwe klant toevoegen</h2>
+      <p>Alle velden behalve bedrijfsnaam/klantnaam zijn optioneel.</p>
+    </div>
+    <form class="form-grid" method="post" action="{{ url_for('add_customer') }}">
+      <label>Bedrijfsnaam / klantnaam<input name="company_name" required placeholder="Bijv. Otera B.V."></label>
+      <label>Contactpersoon<input name="contact_name" placeholder="Optioneel"></label>
+      <label>E-mail<input name="email" placeholder="Optioneel"></label>
+      <label>Adresregel 1<input name="address1" placeholder="Straat + huisnummer"></label>
+      <label>Adresregel 2<input name="address2" placeholder="Postcode + plaats"></label>
+      <label>Adresregel 3<input name="address3" placeholder="Provincie / land"></label>
+      <label>KvK<input name="kvk" placeholder="Optioneel"></label>
+      <label>BTW<input name="btw" placeholder="Optioneel"></label>
+      <label>Telefoon<input name="phone" placeholder="Optioneel"></label>
+      <button class="btn primary" type="submit">Klant opslaan</button>
+    </form>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>Klantenlijst</h2>
+      <p>Deze klanten kun je selecteren bij een nieuwe factuur.</p>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Klant</th>
+            <th>Adres</th>
+            <th>KvK</th>
+            <th>BTW</th>
+            <th>Contact</th>
+            <th>Actie</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in customers %}
+          <tr>
+            <td><strong>{{ c.company_name }}</strong><br>{{ c.contact_name or "" }}</td>
+            <td>{{ c.address1 or "" }}<br>{{ c.address2 or "" }}<br>{{ c.address3 or "" }}</td>
+            <td>{{ c.kvk or "" }}</td>
+            <td>{{ c.btw or "" }}</td>
+            <td>{{ c.email or "" }}<br>{{ c.phone or "" }}</td>
+            <td><a class="btn delete" href="{{ url_for('delete_customer', customer_id=c.id) }}" onclick="return confirm('Klant verwijderen?')">Verwijder</a></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</main>
+{% endblock %}

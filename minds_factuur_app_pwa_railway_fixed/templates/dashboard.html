@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - Minds Agency Factuur App{% endblock %}
+{% block body %}
+<header class="topbar">
+  <div>
+    <h1>Minds Agency Factuur App</h1>
+    <p>Algemeen systeem voor klanten, facturen, PDF-downloads, mailteksten en balans.</p>
+  </div>
+  <div class="top-actions">
+    <a href="{{ url_for('customers') }}">Klanten beheren</a>
+    <span>Vandaag: {{ today.strftime('%d-%m-%Y') }}</span>
+  </div>
+</header>
+
+<main class="container">
+  <section class="cards">
+    <div class="card danger"><span>Over datum</span><strong>{{ euro(totals.overdue) }}</strong></div>
+    <div class="card warning"><span>Openstaand</span><strong>{{ euro(totals.open) }}</strong></div>
+    <div class="card success"><span>Betaald</span><strong>{{ euro(totals.paid) }}</strong></div>
+    <div class="card neutral"><span>Klanten</span><strong>{{ totals.customers }}</strong></div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>Balans grafiek</h2>
+      <p>Professioneel overzicht van openstaand, betaald en over datum.</p>
+    </div>
+    <div class="bars">
+      {% set max_total = [totals.open, totals.paid, totals.overdue, totals.concept, 1]|max %}
+      <div class="bar-row"><span>Open</span><div><i style="width: {{ (totals.open / max_total * 100)|round(0) }}%"></i></div><b>{{ euro(totals.open) }}</b></div>
+      <div class="bar-row"><span>Betaald</span><div><i style="width: {{ (totals.paid / max_total * 100)|round(0) }}%"></i></div><b>{{ euro(totals.paid) }}</b></div>
+      <div class="bar-row"><span>Over datum</span><div><i style="width: {{ (totals.overdue / max_total * 100)|round(0) }}%"></i></div><b>{{ euro(totals.overdue) }}</b></div>
+      <div class="bar-row"><span>Concept</span><div><i style="width: {{ (totals.concept / max_total * 100)|round(0) }}%"></i></div><b>{{ euro(totals.concept) }}</b></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>Nieuwe factuur maken</h2>
+      <p>Kies een klant, vul werkzaamheden in en download daarna direct de PDF.</p>
+    </div>
+
+    {% if not customers %}
+      <p>Voeg eerst een klant toe.</p>
+      <a class="btn primary" href="{{ url_for('customers') }}">Klant toevoegen</a>
+    {% else %}
+    <form class="invoice-form" method="post" action="{{ url_for('add_invoice') }}">
+      <div class="form-grid">
+        <label>Factuurnummer<input name="invoice_no" value="{{ next_no }}"></label>
+        <label>Klant
+          <select name="customer_id" required>
+            {% for customer in customers %}
+              <option value="{{ customer.id }}">{{ customer.company_name }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>Factuurdatum<input type="date" name="invoice_date" required value="{{ today.isoformat() }}"></label>
+        <label>Status
+          <select name="status">
+            <option value="open">Open</option>
+            <option value="paid">Betaald</option>
+            <option value="concept">Concept / komt eraan</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="line-box">
+        <h3>Werkzaamheden / regels</h3>
+        <div class="line-grid header"><span>Aantal</span><span>Omschrijving</span><span>Bedrag ex. btw</span></div>
+        <div class="line-grid"><input name="quantity" value="1"><input name="description" value="WF klant compleet - "><input name="price_ex_vat" value="300"></div>
+        <div class="line-grid"><input name="quantity" value="1"><input name="description" placeholder="Extra regel optioneel"><input name="price_ex_vat" placeholder="0"></div>
+        <div class="line-grid"><input name="quantity" value="1"><input name="description" placeholder="Extra regel optioneel"><input name="price_ex_vat" placeholder="0"></div>
+        <div class="line-grid"><input name="quantity" value="1"><input name="description" placeholder="Extra regel optioneel"><input name="price_ex_vat" placeholder="0"></div>
+        <div class="line-grid"><input name="quantity" value="1"><input name="description" placeholder="Extra regel optioneel"><input name="price_ex_vat" placeholder="0"></div>
+      </div>
+
+      <button class="btn primary" type="submit">Factuur opslaan</button>
+      <a class="btn" href="{{ url_for('customers') }}">Nieuwe klant toevoegen</a>
+    </form>
+    {% endif %}
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>Facturen overzicht</h2>
+      <p>PDF downloaden, mailtekst maken of status aanpassen.</p>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Factuur</th>
+            <th>Klant</th>
+            <th>Regels</th>
+            <th>Datum</th>
+            <th>Vervaldatum</th>
+            <th>Ex. btw</th>
+            <th>Incl. btw</th>
+            <th>Status</th>
+            <th>Acties</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for inv in invoices %}
+          <tr class="{% if inv.is_overdue %}overdue{% endif %}">
+            <td><strong>{{ inv.invoice_no }}</strong></td>
+            <td>{{ inv.customer.company_name }}</td>
+            <td>{% for line in inv.lines %}<div>{{ line.description }}</div>{% endfor %}</td>
+            <td>{{ inv.invoice_date.strftime('%d-%m-%Y') }}</td>
+            <td>{{ inv.due_date.strftime('%d-%m-%Y') }}</td>
+            <td>{{ euro(inv.subtotal) }}</td>
+            <td><strong>{{ euro(inv.total) }}</strong></td>
+            <td>
+              {% if inv.status == 'paid' %}<span class="pill paid">Betaald</span>
+              {% elif inv.status == 'concept' %}<span class="pill concept">Concept</span>
+              {% elif inv.is_overdue %}<span class="pill overdue-pill">Over datum</span>
+              {% else %}<span class="pill open">Open</span>{% endif %}
+            </td>
+            <td class="actions">
+              <a class="btn" href="{{ url_for('download_pdf', invoice_id=inv.id) }}">PDF</a>
+              <a class="btn" href="{{ url_for('mail_text', invoice_id=inv.id) }}">Mail</a>
+              <a class="btn" href="{{ url_for('set_status', invoice_id=inv.id, status='paid') }}">Betaald</a>
+              <a class="btn" href="{{ url_for('set_status', invoice_id=inv.id, status='open') }}">Open</a>
+              <a class="btn delete" href="{{ url_for('delete_invoice', invoice_id=inv.id) }}" onclick="return confirm('Factuur verwijderen?')">X</a>
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</main>
+{% endblock %}

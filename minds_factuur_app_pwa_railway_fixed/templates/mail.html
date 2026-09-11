@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Mailtekst {{ invoice.invoice_no }}{% endblock %}
+{% block body %}
+<main class="container small">
+  <section class="panel">
+    <div class="panel-head">
+      <h2>Mailtekst voor {{ invoice.invoice_no }}</h2>
+      <p>Kopieer deze tekst naar je mail.</p>
+    </div>
+    <textarea class="mailbox" readonly>{{ text }}</textarea>
+    <a class="btn primary" href="{{ url_for('dashboard') }}">Terug naar dashboard</a>
+  </section>
+</main>
+{% endblock %}
